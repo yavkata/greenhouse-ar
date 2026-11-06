@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Greenhouse on Site</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+<style>
+/* Layout: one column — the live model on top, then placement steps and the AR fallback */
+:root{
+  --bg:#f1f4f0; --panel:#ffffff; --fg:#1c2420; --muted:#5b665f; --line:#d5ddd6;
+  --timber:#94642b; --glass:#3f7f80; --stage:#e3e9e3;
+  --display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --body:"IBM Plex Sans","Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121715; --panel:#1a211e; --fg:#e4ebe6; --muted:#9aa7a0; --line:#2c3632;
+  --timber:#d59a56; --glass:#77b9b8; --stage:#1e2724; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121715; --panel:#1a211e; --fg:#e4ebe6; --muted:#9aa7a0; --line:#2c3632;
+  --timber:#d59a56; --glass:#77b9b8; --stage:#1e2724; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:16px/1.55 var(--body)}
+.wrap{max-width:880px;margin:0 auto;padding-block:20px 40px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:grid;gap:22px}
+header{display:grid;gap:4px}
+h1{font:700 clamp(1.6rem,4.5vw,2.3rem)/1.1 var(--display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+.sub{color:var(--muted);margin:0}
+.spec{display:flex;flex-wrap:wrap;gap:6px 14px;font:500 .82rem/1.4 var(--mono);color:var(--muted)}
+.spec b{color:var(--fg);font-weight:500}
+.stage{position:relative;background:var(--stage);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+model-viewer{width:100%;height:min(68vh,560px);display:block;background:transparent;--poster-color:transparent}
+.arbtn{position:absolute;right:12px;bottom:12px;border:0;border-radius:999px;padding:10px 16px;
+  background:var(--timber);color:#fff;font:600 .95rem var(--body);cursor:pointer}
+.arbtn:focus-visible{outline:3px solid var(--glass);outline-offset:2px}
+.compass{position:absolute;left:12px;top:12px;font:500 .78rem var(--mono);color:var(--muted);
+  background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 8px}
+h2{font:700 1.1rem/1.2 var(--display);margin:0 0 8px}
+ol{margin:0;padding-left:1.3em;display:grid;gap:8px;max-width:65ch}
+ol li::marker{font-family:var(--mono);color:var(--timber)}
+.note{border-left:3px solid var(--glass);padding:10px 14px;background:var(--panel);max-width:65ch;color:var(--fg)}
+.note p{margin:0}
+code{font-family:var(--mono);font-size:.9em}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:22px}
+.cols>section{min-width:0}
+@media (prefers-reduced-motion: reduce){model-viewer{--progress-bar-height:0}}
+</style>
+</head><body>
+
+<div class="wrap">
+  <header>
+    <h1>Greenhouse on Site</h1>
+    <p class="sub">The Sofia geothermal greenhouse at full size, to stand on your plot in augmented reality.</p>
+    <div class="spec"><span>footprint <b>3.76 × 4.50 m</b></span><span>ridge <b>3.47 m</b></span><span>glass roof <b>32°</b> to the south</span><span>vestibule <b>NW</b></span></div>
+  </header>
+
+  <div class="stage">
+    <model-viewer id="mv" src="greenhouse.glb" ios-src="greenhouse.usdz" alt="3D model of the greenhouse"
+      ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed" ar-placement="floor"
+      camera-controls touch-action="pan-y" camera-orbit="35deg 72deg auto" shadow-intensity="0.8" exposure="1.0" interaction-prompt="none">
+      <button slot="ar-button" class="arbtn" id="arbtn">View on your plot</button>
+    </model-viewer>
+    <span class="compass">glass wall = south</span>
+  </div>
+
+  <div class="cols">
+    <section>
+      <h2>Placing it on the plot</h2>
+      <ol>
+        <li>Mark the four corners first: 3.76 m east–west, 4.50 m north–south.</li>
+        <li>Stand a few metres south of the spot, facing north, and tap <b>View on your plot</b>.</li>
+        <li>Sweep the phone slowly over the ground until it finds the surface, then tap to place.</li>
+        <li>The glass roof faces you when it lands. Drag it onto the stakes and twist with two fingers until it lines up. Size stays locked at 1:1.</li>
+      </ol>
+    </section>
+    <section>
+      <h2>Requirements</h2>
+      <div class="note"><p>AR needs a phone with ARCore (Android, in Chrome) or ARKit (iPhone, in Safari), and the page must be opened over https.</p></div>
+    </section>
+  </div>
+</div>
+
+</body></html>
