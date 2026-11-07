@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Гео AR</title>
+<style>
+/* Layout: landing column (site, geo reference, start) + full-screen AR overlay with a bottom control deck */
+:root{
+  --bg:#eef2ee; --panel:#ffffff; --fg:#1b231f; --muted:#5a665f; --line:#d3dbd4;
+  --accent:#2f6f6a; --accent-fg:#ffffff; --warn:#a65f12; --good:#2d7a3e; --bad:#b23a2e;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#111614; --panel:#19201d; --fg:#e4ebe6; --muted:#9aa79f; --line:#2b3531;
+  --accent:#6fb9b1; --accent-fg:#0d1513; --warn:#e3a457; --good:#7cc98b; --bad:#ef8a7c; color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--body)}
+main{max-width:860px;margin:0 auto;display:grid;gap:18px;
+  padding-block:max(18px,env(safe-area-inset-top,0px)) 40px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1{font-size:clamp(1.45rem,4.6vw,2rem);line-height:1.15;margin:0;text-wrap:balance}
+h2{font-size:1.02rem;margin:0 0 8px}
+.sub{color:var(--muted);margin:2px 0 0}
+section{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+label{display:grid;gap:3px;font-size:.82rem;color:var(--muted);min-width:0}
+input,select{font:15px var(--mono);padding:8px 9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--fg);width:100%}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+button{font:600 .92rem var(--body);border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:8px;padding:9px 12px;cursor:pointer}
+button.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);font-size:1.05rem;padding:13px 18px}
+button:disabled{opacity:.45}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.status{display:grid;gap:4px;font:13px/1.45 var(--mono)}
+.ok{color:var(--good)} .warn{color:var(--warn)} .bad{color:var(--bad)}
+#preview{height:min(52vh,420px);border-radius:10px;overflow:hidden;border:1px solid var(--line);background:var(--panel)}
+#preview canvas{display:block;width:100%;height:100%}
+ol{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:68ch}
+.small{font-size:.84rem;color:var(--muted)}
+a{color:var(--accent)}
+code{font-family:var(--mono);font-size:.9em}
+
+/* ---------- AR overlay ---------- */
+#overlay{position:fixed;inset:0;pointer-events:none;color:#fff;font:14px/1.35 var(--body)}
+#overlay .bar,#overlay .deck{pointer-events:auto;background:rgba(10,16,14,.72);backdrop-filter:blur(6px)}
+#overlay .bar{position:absolute;left:0;right:0;top:0;display:flex;flex-wrap:wrap;gap:4px 12px;font:12.5px var(--mono);
+  padding:calc(env(safe-area-inset-top,0px) + 8px) max(12px,env(safe-area-inset-right,0px)) 8px max(12px,env(safe-area-inset-left,0px))}
+#overlay .deck{position:absolute;left:0;right:0;bottom:0;display:grid;gap:7px;
+  padding:9px max(10px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 10px) max(10px,env(safe-area-inset-left,0px))}
+#overlay .deck .row{gap:6px}
+#overlay button{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);padding:9px 11px;font-size:.88rem}
+#overlay button.go{background:#2f8f86;border-color:#2f8f86}
+#overlay button.sq{min-width:44px}
+#overlay select{background:rgba(0,0,0,.35);color:#fff;border-color:rgba(255,255,255,.3);flex:1 1 160px;width:auto;font:14px var(--body)}
+#msg{font-size:.86rem;color:#d9f2ee;min-height:1.3em}
+#cross{position:absolute;left:50%;top:50%;width:28px;height:28px;margin:-14px 0 0 -14px;border:2px solid rgba(255,255,255,.9);border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,.4)}
+#cross::after{content:"";position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px;background:#fff;border-radius:50%}
+.chip b{color:#9fe3d9;font-weight:500}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+}}
+</script>
+</head>
+<body>
+<main id="home">
+  <header>
+    <h1 id="title">Гео AR</h1>
+    <p class="sub" id="subtitle">Моделът стои на реалните си координати.</p>
+  </header>
+
+  <section>
+    <div class="grid">
+      <label>Обект<select id="site"></select></label>
+    </div>
+    <div class="status" id="support" style="margin-top:10px"></div>
+  </section>
+
+  <div id="preview"></div>
+
+  <section>
+    <h2>Географска привръзка</h2>
+    <p class="small" id="geonote" style="margin:0 0 10px"></p>
+    <div class="grid">
+      <label>Ширина (lat)<input id="lat" inputmode="decimal" placeholder="43.12345"></label>
+      <label>Дължина (lon)<input id="lon" inputmode="decimal" placeholder="27.12345"></label>
+      <label>Точка от обекта<select id="gpoint"></select></label>
+      <label>Азимут на сградата, °<input id="az" inputmode="decimal"></label>
+      <label>Магн. деклинация, °<input id="decl" inputmode="decimal"></label>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button id="save">Запази</button>
+      <button id="here">GPS тук → точката</button>
+      <button id="reset">Върни от файла</button>
+      <button id="copy">Копирай JSON</button>
+      <a id="map" href="#" target="_blank" rel="noopener">Виж на картата</a>
+    </div>
+    <p class="small" id="savemsg" style="margin:8px 0 0"></p>
+  </section>
+
+  <section>
+    <div class="row"><button class="primary" id="start" disabled>Старт AR на място</button></div>
+    <p class="small" id="startnote" style="margin:8px 0 0"></p>
+  </section>
+
+  <section>
+    <h2>Как се поставя</h2>
+    <ol>
+      <li><b>Груба позиция (GPS + компас).</b> Влез в AR, завърти се бавно около себе си с вдигнат телефон, за да се калибрира компасът, после натисни <b>По GPS</b>. Точност около 3–10 m и 5–10°.</li>
+      <li><b>Точна позиция (колчета).</b> Насочи кръгчето в центъра към колче, избери коя точка от обекта е то и натисни <b>Фиксирай</b>. С една точка посоката идва от компаса. С две и повече точки моделът ляга точно, а компасът само проверява.</li>
+      <li>Лентата горе показва отклонението между колчетата и проекта. Ако е над 5–10 cm, някое колче е сбъркано.</li>
+      <li>След като го наместиш по колчета, <b>Запази азимута</b> и <b>GPS тук</b> записват реалната посока и координати. Следващия път <b>По GPS</b> ще го постави и без колчета.</li>
+    </ol>
+    <p class="small" style="margin:10px 0 0">Работи в Chrome на Android с ARCore. Safari на iPhone няма WebXR, затова там използвай обикновения AR преглед на обекта.</p>
+  </section>
+</main>
+
+<div id="overlay" hidden>
+  <div class="bar" id="bar"></div>
+  <div id="cross"></div>
+  <div class="deck">
+    <div id="msg"></div>
+    <div class="row">
+      <select id="fpoint" aria-label="Точка от обекта"></select>
+      <button class="go" id="fix">Фиксирай</button>
+      <button id="undo">Отмени</button>
+    </div>
+    <div class="row">
+      <button id="bygps">По GPS</button>
+      <button class="sq" id="rl" aria-label="Завърти наляво">⟲</button>
+      <button class="sq" id="rr" aria-label="Завърти надясно">⟳</button>
+      <button class="sq" id="mn" aria-label="Премести на север">С</button>
+      <button class="sq" id="ms" aria-label="Премести на юг">Ю</button>
+      <button class="sq" id="mw" aria-label="Премести на запад">З</button>
+      <button class="sq" id="me" aria-label="Премести на изток">И</button>
+    </div>
+    <div class="row">
+      <button id="ghost">Прозрачно</button>
+      <button id="gpshere">GPS тук</button>
+      <button id="saveaz">Запази азимута</button>
+      <button id="exit">Изход</button>
+    </div>
+  </div>
+</div>
+<script type="module" src="app.js"></script>
+</body>
+</html>
